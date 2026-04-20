@@ -6,14 +6,14 @@ metadata:
 spec:
   project: default
   source:
+    # nimic
     repoURL: https://github.com/ancaraduu/ci_cd_lab.git
     targetRevision: HEAD
     path: manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: default
-  # --- ADAUGĂ ACEASTA SECȚIUNE ---
   syncPolicy:
     automated:
-      prune: true      # Șterge resursele care nu mai există în Git
-      selfHeal: true   # Dacă cineva modifică manual în K8s, Argo pune la loc ce e în Git
+      prune: true
+      selfHeal: true
