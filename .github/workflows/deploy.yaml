@@ -6,31 +6,46 @@ on:
       - main
 
 jobs:
-  # Jobul de testare (trebuie definit primul sau referențiat)
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.22'
-
       - name: Install dependencies
         run: go mod download
-
-      # TODO 01 - Am adăugat comanda de testare
       - name: Run tests
         run: go test ./...
 
-  # Jobul de compilare
   compile:
     runs-on: ubuntu-latest
-    # TODO 02 - Specificăm că acest job depinde de succesul jobului 'test'
     needs: test
-    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Install dependencies
+        run: go mod download
+      - name: Compile binary
+        run: go build -o myapp
+
+  build:
+    runs-on: ubuntu-latest
+    # Acordăm permisiuni pentru a putea scrie în secțiunea de Packages (GHCR)
+    permissions:
+      contents: write
+      packages: write
+
+    # Acest job pornește DOAR dacă 'compile' a terminat cu succes
+    needs: compile
+    if: success()
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -40,8 +55,22 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install dependencies
-        run: go mod download
+      # Logare în registrul de containere GitHub
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compile binary
-        run: go build -o myapp
+      # Construirea imaginii Docker
+      - name: Build Docker image
+        run: |
+          IMAGE_NAME=$(echo "ghcr.io/${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker build -t $IMAGE_NAME:latest .
+          echo "IMAGE_TAG=$IMAGE_NAME" >> $GITHUB_ENV
+
+      # Push-ul imaginii în cloud
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.IMAGE_TAG }}:latest
