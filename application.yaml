@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: go-simple-webserver
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/ancaraduu/ci_cd_lab.git
+    targetRevision: HEAD
+    path: manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  # --- ADAUGĂ ACEASTA SECȚIUNE ---
+  syncPolicy:
+    automated:
+      prune: true      # Șterge resursele care nu mai există în Git
+      selfHeal: true   # Dacă cineva modifică manual în K8s, Argo pune la loc ce e în Git
